@@ -18,6 +18,16 @@ def conv2d(image, kernel, padding='same'):
 		for y in range(image_width):
 			i = x + offset_height
 			j = y + offset_width
-			output[i][j] = sum(sum(padded_image[x : x + kernel_height][y : y + kernel_width] * kernel))
+                        pi = padded_image[x:x+kernel_height, y:y+kernel_width]
+			output[i][j] = np.sum(np.multiply(pi, kernel))
 
 	return output[offset_height : offset_height + image_height][offset_width : offset_width + image_width]
+
+def gaussWin(N, alpha=2.5):
+    gw = np.zeros(N);
+    for i in range(N):
+        n = i - (N-1.0)/2
+        arg = -1.0/2 * ((alpha * n/((N-1.0)/2)) ** 2)
+        gw[i] = np.exp(arg)
+    gw.shape = (N, 1) 
+    return gw
