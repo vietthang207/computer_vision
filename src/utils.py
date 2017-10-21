@@ -18,8 +18,8 @@ def conv2d(image, kernel, padding='same'):
 		for y in range(image_width):
 			i = x + offset_height
 			j = y + offset_width
-                        pi = padded_image[x:x+kernel_height, y:y+kernel_width]
-			output[i][j] = np.sum(np.multiply(pi, kernel))
+			pi = padded_image[x:x+kernel_height, y:y+kernel_width]
+			output[i][j] = np.sum(np.sum(pi * kernel))
 
 	return output[offset_height : offset_height + image_height][offset_width : offset_width + image_width]
 
