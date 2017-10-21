@@ -19,11 +19,11 @@ class LucasKanadeTracker(object):
 		Ix = conv2d(frame1, np.array([[-1, 1], [-1, 1]]), 'same')
 		Iy = conv2d(frame1, np.array([[-1, -1], [1, 1]]), 'same')
 		# I - J: partial derivative wrt time
-		It = conv2d(frame1, np.array([[1, 1], [1, 1]]), 'same') - conv2d(frame2, np.array([[-1, -1], [-1, -1]]), 'same')
+		It = conv2d(frame1, np.array([[1, 1], [1, 1]]), 'same') + conv2d(frame2, np.array([[-1, -1], [-1, -1]]), 'same')
 		print('finish conv2d')
 		vx = np.zeros(frame1.shape)
 		vy = np.zeros(frame1.shape)
-
+		# return vx, vy
 		offset = kernel_size // 2
 
 		for i in range(offset, frame_height - offset - 1):
@@ -38,7 +38,7 @@ class LucasKanadeTracker(object):
 				Ix_w = Ix_w.reshape(kernel_size * kernel_size, 1)
 				Iy_w = Iy_w.reshape(kernel_size * kernel_size, 1)
 				# TODO: which sign is this?
-				b = It_w.reshape(kernel_size * kernel_size, 1)
+				b = - It_w.reshape(kernel_size * kernel_size, 1)
 				A = np.array([Ix_w, Iy_w])
 				A = A.reshape(kernel_size * kernel_size, 2)
 				# print(A.shape)
@@ -61,9 +61,19 @@ if __name__ == "__main__":
 	frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
 	cv2.imshow('frame1', frame1)
 	cv2.waitKey()
-	cv2.imshow('frame2', frame2)
-	cv2.waitKey()
 	kernel = gaussWin(45).dot(gaussWin(45).transpose())
 	print(kernel.shape)
 	tracker = LucasKanadeTracker()
 	vx, vy = tracker.calculate_velocity(frame1, frame2, kernel)
+	frame_height = frame1.shape[0]
+	frame_width = frame1.shape[1]
+	print(frame1.shape)
+	for i in range(frame_height):
+		for j in range(frame_width):
+			v = np.sqrt(vx[i][j]*vx[i][j] + vy[i][j]*vy[i][j])
+			if v > 0.2:
+				frame1[i][j] = 0
+
+	print(frame1.shape)
+	cv2.imshow('frame1 velo', frame1)
+	cv2.waitKey()
