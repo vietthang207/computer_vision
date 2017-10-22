@@ -27,7 +27,8 @@ class LucasKanadeTracker(object):
 		offset = kernel_size // 2
 
 		for i in range(offset, frame_height - offset - 1):
-			print(i)
+			if i %100 == 0 :
+				print(i)
 			for j in range(offset, frame_width - offset - 1):
 				# gradients inside window w
 				Ix_w = Ix[i - offset : i + offset + 1, j - offset : j + offset + 1]
@@ -46,8 +47,8 @@ class LucasKanadeTracker(object):
 				A_t = np.transpose(A)
 				# print(A_t.shape, W.shape, A.shape, b.shape)
 				# v = np.linalg.inv(A_t.dot(W).dot(A)).dot(A_t).dot(W).dot(b)
-				# A = W.dot(A)
-				# b = W.dot(b)
+				A = W.dot(A)
+				b = W.dot(b)
 				v = np.linalg.pinv(A).dot(b)
 				vx[i][j] = v[0]
 				vy[i][j] = v[1]
@@ -61,7 +62,7 @@ if __name__ == "__main__":
 	frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
 	cv2.imshow('frame1', frame1)
 	cv2.waitKey()
-	kernel = gaussWin(45).dot(gaussWin(45).transpose())
+	kernel = gaussWin(13).dot(gaussWin(13).transpose())
 	print(kernel.shape)
 	tracker = LucasKanadeTracker()
 	vx, vy = tracker.calculate_velocity(frame1, frame2, kernel)
@@ -71,7 +72,7 @@ if __name__ == "__main__":
 	for i in range(frame_height):
 		for j in range(frame_width):
 			v = np.sqrt(vx[i][j]*vx[i][j] + vy[i][j]*vy[i][j])
-			if v > 0.2:
+			if v > 0.5:
 				frame1[i][j] = 0
 
 	print(frame1.shape)

@@ -1,4 +1,5 @@
 from utils import *
+import cv2
 
 """Implement two background subtraction algorithms. Using by creating an instance of
 class and sequentially apply each frame in a video. apply() method returns a bitmap of foreground
@@ -181,3 +182,12 @@ class PixelMixture:
         if kHit < 0 or kHit >= kForeground:
             return 255
         return 0
+
+if __name__ == "__main__":
+    cap = cv2.VideoCapture('../videos/traffic.mp4')
+    bg = BackgroundSubtractorMOG()
+    for i in range(100):
+        _, frame = cap.read()
+        bitmap = bg.apply(frame)
+        cv2.imshow('frame' + str(i), bitmap)
+        cv2.waitKey(50) 

@@ -1,12 +1,14 @@
 import cv2
 import numpy as np
 from utils import *
+import corner_detector as cd
 
 class CartoonFilter(object):
 	"""Cartoon filter for image"""
-	def __init__(self):
+	def __init__(self, ratio):
+		self.ratio = ratio
 
-	def catoon_color(img, bitmap, edgemap):
+	def cartoon_color(self, img, bitmap, edgemap):
 		
 		# Actual full step for cartoon effect:
 		
@@ -20,24 +22,39 @@ class CartoonFilter(object):
 		
 		height = img.shape[0]
 		width = img.shape[1]
-		
+		r = self.ratio
 		for i in range(1, height):
 			for j in range(1, width):
 				if edgemap[i,j]:		# cond which edge to accept to be done later 
 					img[i,j] = [0,0,0]
 				elif bitmap[i][j] == 1:
-					img[i,j] = [img[i,j,0]//10*10,img[i,j,1]//10*10,img[i,j,2]//10*10]
+					img[i,j] = [img[i,j,0]//r*r,img[i,j,1]//r*r,img[i,j,2]//r*r]
 		return img
 
-	def catoon_color(img, edgemap):
+	# def cartoon_color(img, edgemap):
 		
-		height = img.shape[0]
-		width = img.shape[1]
+	# 	height = img.shape[0]
+	# 	width = img.shape[1]
 		
-		for i in range(1, height):
-			for j in range(1, width):
-				if edgemap[i,j]:		# cond which edge to accept to be done later 
-					img[i,j] = [0,0,0]
-				else:
-					img[i,j] = [img[i,j,0]//10*10,img[i,j,1]//10*10,img[i,j,2]//10*10]
-		return img
+	# 	for i in range(1, height):
+	# 		for j in range(1, width):
+	# 			if edgemap[i,j]:		# cond which edge to accept to be done later 
+	# 				img[i,j] = [0,0,0]
+	# 			else:
+	# 				img[i,j] = [img[i,j,0]//10*10,img[i,j,1]//10*10,img[i,j,2]//10*10]
+	# 	return img
+
+if __name__ == "__main__":
+	cap = cv2.VideoCapture('../videos/traffic.mp4')
+	ret, frame1 = cap.read()
+	cv2.imshow("original", frame1)
+	cv2.waitKey()
+	n = frame1.shape[0]
+	m = frame1.shape[1]
+	bm = np.ones((n, m))
+	frameb = cv2.cvtColor(frame1, cv2.COLOR_RGB2GRAY)
+	em = cd.corner_detector(frameb, 0, 13)
+	cf = CartoonFilter(40)
+	frame2 = cf.cartoon_color(frame1, bm, em)	
+	cv2.imshow("new", frame2)
+	cv2.waitKey()
