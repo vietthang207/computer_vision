@@ -46,6 +46,19 @@ class CartoonFilter(object):
 	# 				img[i,j] = [img[i,j,0]//10*10,img[i,j,1]//10*10,img[i,j,2]//10*10]
 	# 	return img
 
+def cartoonize(frame1):
+	n = frame1.shape[0]
+	m = frame1.shape[1]
+	bm = np.ones((n, m))
+	frameb = cv2.cvtColor(frame1, cv2.COLOR_RGB2GRAY)
+	em = ed.get_edge_map(frameb)
+	# cv2.imshow('em', em.astype(np.uint8))
+	# cv2.imwrite('cat bla.jpg', em)
+	cf = CartoonFilter(40, 250)
+	frame2 = cf.cartoon_color(frame1, bm, em)	
+	cv2.imshow("new", frame2)
+	cv2.waitKey(2000)
+
 if __name__ == "__main__":
 	cap = cv2.VideoCapture('../videos/traffic.mp4')
 	ret, frame1 = cap.read()
@@ -59,7 +72,7 @@ if __name__ == "__main__":
 	em = ed.get_edge_map(frameb)
 	cv2.imshow('em', em.astype(np.uint8))
 	cv2.imwrite('cat bla.jpg', em)
-	cf = CartoonFilter(40, 250)
+	cf = CartoonFilter(40, 200)
 	frame2 = cf.cartoon_color(frame1, bm, em)	
 	cv2.imshow("new", frame2)
 	cv2.waitKey()
