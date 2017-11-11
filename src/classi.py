@@ -8,8 +8,8 @@ import itertools
 from sklearn.svm import SVC
 import pickle
 
-# emotions = ["anger", "contempt", "disgust", "fear", "happiness", "neutral", "sadness", "surprise"] #Emotion list
-emotions = ["neutral", "anger", "disgust", "happy", "surprise"]
+emotions = ["anger", "contempt", "disgust", "fear", "happy", "neutral", "sadness", "surprise"] #Emotion list
+# emotions = ["neutral", "anger", "disgust", "happy", "surprise"]
 
 clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
 detector = dlib.get_frontal_face_detector()
@@ -21,9 +21,11 @@ data = {} #Make dictionary for all values
 
 def get_files(emotion): #Define function to get file list, randomly shuffle it and split 80/20
     files = glob.glob("dataset/%s/*" %emotion)
+    print("length of data")
+    print(len(files))
     random.shuffle(files)
-    training = files[:int(len(files)*0.8)] #get first 80% of file list
-    prediction = files[-int(len(files)*0.2):] #get last 20% of file list
+    training = files[:int(len(files) * 0.99)] #get first 80% of file list
+    prediction = files[-int(len(files) * 0.01):] #get last 20% of file list
     # training = files
     # prediction = sorted(glob.glob("predict_dataset/*"))
     return training, prediction
@@ -73,8 +75,9 @@ def make_sets():
         for item in training:
             image = cv2.imread(item) #open image
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) #convert to grayscale
-            clahe_image = clahe.apply(gray)
-            get_landmarks(clahe_image)
+            # clahe_image = clahe.apply(gray)
+            # get_landmarks(clahe_image)
+            get_landmarks(gray)
             if data['landmarks_vectorised'] == "error":
                 print("no face detected on this one")
             else:
@@ -84,8 +87,9 @@ def make_sets():
         for item in prediction:
             image = cv2.imread(item)
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            clahe_image = clahe.apply(gray)
-            get_landmarks(clahe_image)
+            # clahe_image = clahe.apply(gray)
+            # get_landmarks(clahe_image)
+            get_landmarks(gray)
             if data['landmarks_vectorised'] == "error":
                 print("no face detected on this one")
             else:
