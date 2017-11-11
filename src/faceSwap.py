@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import dlib
 import math
+from delaunay_triangulation import delaunay_triangulation
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -51,13 +52,14 @@ def rectContains(rect, point) :
 #calculate delanauy triangle
 def calculateDelaunayTriangles(rect, points):
     #create subdiv
-    subdiv = cv2.Subdiv2D(rect);
+    #subdiv = cv2.Subdiv2D(rect);
     
     # Insert points into subdiv
-    for p in points:
-        subdiv.insert(p) 
+    #for p in points:
+    #    subdiv.insert(p) 
     
-    triangleList = subdiv.getTriangleList();
+    #triangleList = subdiv.getTriangleList();
+    triangleList = delaunay_triangulation(points);
     
     delaunayTri = []
     
@@ -186,7 +188,7 @@ if __name__ == '__main__' :
     # Find delanauy traingulation for convex hull points
     sizeImg2 = img2.shape    
     rect = (0, 0, sizeImg2[1], sizeImg2[0])
-     
+
     dt = calculateDelaunayTriangles(rect, hull2)
     
     if len(dt) == 0:
@@ -223,7 +225,7 @@ if __name__ == '__main__' :
     output = cv2.seamlessClone(np.uint8(img1Warped), img2, mask, center, cv2.NORMAL_CLONE)
     
     cv2.imshow("Face Swapped", output)
-    cv2.waitKey(0)
+    cv2.waitKey(10000)
     
     cv2.destroyAllWindows()
         
