@@ -1,5 +1,6 @@
 import numpy as np
 from utils import *
+from constants import *
 
 def corner_detector(image, blockSize, kSize):
     """image should be grayscale"""
@@ -44,7 +45,7 @@ def corner_detector(image, blockSize, kSize):
 
     print('eig_max finish...')
 
-    cutoff = min(200, height * width - 1)
+    cutoff = min(Constant.NUM_FEATURE_TO_TRACK, height * width - 1)
     cutoff_eig = np.sort(eig_min, axis=None)[::-1][cutoff-1]
     bitmap = np.zeros((height, width))
     bitmap[eig_min >= cutoff_eig] = 1
