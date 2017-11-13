@@ -6,7 +6,7 @@ import cv2
 import dlib
 import math
 from delaunay_triangulation import delaunay_triangulation
-from cv_utils import findAffineTransformMatrix, warpAffine, boundingRect
+from cv_utils import findAffineTransformMatrix, warpAffine, boundingRect, convexHull, mapBack
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -131,8 +131,6 @@ def warpTriangle(img1, img2, t1, t2) :
     img2Rect = applyAffineTransform(img1Rect, t1Rect, t2Rect, size)
     
     
-    print("mask")
-    print(mask.shape)
     # Preserve all inside, delete all outside
     img2Rect = img2Rect * mask
 
@@ -171,17 +169,14 @@ if __name__ == '__main__' :
 
     
     # Read images
-    filename2 = 'hieu.jpg'
-    filename1 = 'taylor-swift-face.jpg'
+    filename1 = 'hieu.jpg'
+    filename2 = 'taylor-swift-face.jpg'
     
     img1 = cv2.imread(filename1);
     img2 = cv2.imread(filename2);
     
     img1Warped = np.copy(img2);
      
-    # res = get_landmarks(img1)
-    # print(res.shape)
-
     # Read array of corresponding points
     points1 = get_landmarks(img1)
     points2 = get_landmarks(img2)
@@ -191,7 +186,12 @@ if __name__ == '__main__' :
     hull1 = []
     hull2 = []
 
-    hullIndex = cv2.convexHull(np.array(points2), returnPoints = False)
+    sorted_points = sorted(points2)
+
+    hullIndex = convexHull(np.array(sorted_points))
+    hullIndex = mapBack(np.array(points2), np.array(sorted_points), np.array(hullIndex))
+    hullIndex = np.array(hullIndex)
+
 
     for i in range(0, len(hullIndex)):
         hull1.append(points1[int(hullIndex[i])])
