@@ -29,18 +29,9 @@ def readPoints(path) :
 def applyAffineTransform(src, srcTri, dstTri, size) :
     
     # Given a pair of triangles, find the affine transform.
-    # warpMat = cv2.getAffineTransform( np.float32(srcTri), np.float32(dstTri) )
+    warpMat = findAffineTransformMatrix( np.float32(dstTri), np.float32(srcTri) )
 
-    warpMat = findAffineTransformMatrix( (srcTri), (dstTri) )
-
-
-    # Apply the Affine Transform just found to the src image
-    # dst = cv2.warpAffine( src, warpMat, (size[0], size[1]), None, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101 )
-    dst = cv2.warpAffine( src, warpMat, (size[0], size[1]))
-    # fakeDst = warpAffine(src, warpMat, size[0], size[1])
-    # resizedDst = cv2.resize(fakeDst, (size[0], size[1]), interpolation = cv2.INTER_AREA)
-    # resizedDst = resizedDst.astype(int)
-  
+    dst = warpAffine(src, warpMat, size[0], size[1])
 
     return dst
 
@@ -169,8 +160,8 @@ if __name__ == '__main__' :
 
     
     # Read images
-    filename1 = 'hieu.jpg'
-    filename2 = 'taylor-swift-face.jpg'
+    filename2 = 'hieu.jpg'
+    filename1 = 'taylor-swift-face.jpg'
     
     img1 = cv2.imread(filename1);
     img2 = cv2.imread(filename2);
@@ -231,7 +222,7 @@ if __name__ == '__main__' :
     
     cv2.fillConvexPoly(mask, np.int32(hull8U), (255, 255, 255))
     
-    r = cv2.boundingRect(np.float32([hull2]))    
+    r = boundingRect(np.float32([hull2]))    
     
     center = ((r[0]+int(r[2]/2), r[1]+int(r[3]/2)))
         

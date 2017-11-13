@@ -69,58 +69,27 @@ def convexHull(points):
     res = lower[:-1] + upper[:-1]
     return res
 
-def check(valid, x, y, w, h):
-	if(valid[x][y] != 0):
-		return False
-	elif (x-1 >= 0) and (y-1>=0) and (x+1 < h) and (y+1 < w):
-		if(valid[x-1][y] !=0) and (valid[x][y-1] !=0) and (valid[x+1][y] !=0) and (valid[x][y+1] !=0):
-			return False
-	return True			
-
-
 def warpAffine(src, warpMat, w, h):
-	old_w = src.shape[1]
-	old_h = src.shape[0]
+	src_w = src.shape[1]
+	src_h = src.shape[0]
 	dst = np.copy(src)
-	# dst = np.zeros((h, w, 3))
 	dst = cv2.resize(dst, (w, h))
-	cnt = np.zeros((h, w))
 	valid = np.zeros((h, w))
-	for x in range(old_h):
-		for y in range(old_w):
+	for x in range(w):
+		for y in range(h):
 			destination = np.matmul(warpMat, [[x], [y], [1]])
-			new_x = int(destination[0][0])
-			new_y = int(destination[1][0])
-			print('value ', x, y, new_x, new_y)
+			src_x = int(destination[0][0])
+			src_y = int(destination[1][0])
+			if src_x >= 0 and src_x < src_w and src_y >= 0 and src_y < src_h:
+				value = src[src_y][src_x]
+				dst[y][x] = value
+				valid[y][x] = 1
 
-			if new_x >= 0 and new_x < h and new_y >= 0 and new_y < w:
-				old_cnt = cnt[new_x][new_y]
-				value = src[x][y]
-				value = ((np.array(dst[new_x][new_y]) * old_cnt + np.array(src[x][y])) / (old_cnt + 1))
-				dst[new_x][new_y][0] = value[0]
-				dst[new_x][new_y][1] = value[1]
-				dst[new_x][new_y][2] = value[2]
-				valid[new_x][new_y] = 1
-				# dst[new_x][new_y] = src[x][y]
-				cnt[new_x][new_y] += 1
-				# print("new dst ")
-				# print(dst[new_x][new_y])
-				# print(value)
-			
-				# print(src[x][y])
+	for x in range(w):
+		for y in range(h):
+			if(valid[y][x] == 0):
+				dst[y][x] = [0, 0, 0]
 
-	for x in range(h):
-		for y in range(w):
-			if(check(valid, x, y, w, h)):
-				dst[x][y] = [0, 0, 0]
-
-	# cv2.imshow('a', dst)
-	# cv2.waitKey(500)
 
 	return np.array(dst)
 
-
-# points = [[175, 198],[182, 237],[191, 274],[197, 183],[198, 312],[213, 348],[220, 173],[230, 215],[237, 380],[245, 223],[246, 177],[247, 207],[265, 223],[267, 207],[267, 406],[270, 187],[275, 352],[283, 219],[285, 355],[293, 199],[294, 373],[296, 348],[301, 310],[301, 431],[312, 315],[312, 381],[313, 343],[313, 357],[313, 358],[320, 214],[322, 241],[323, 269],[324, 297],[325, 319],[325, 359],[326, 347],[326, 358],[326, 382],[333, 437],[337, 315],[338, 342],[338, 357],[339, 356],[340, 380],[344, 190],[348, 310],[356, 347],[358, 371],[365, 218],[366, 428],[368, 178],[368, 353],[378, 350],[380, 205],[384, 221],[393, 169],[400, 204],[400, 404],[403, 220],[419, 211],[421, 166],[430, 376],[448, 172],[454, 345],[468, 310],[474, 271],[477, 232],[479, 194]]
-# hull = [[67],[66],[65],[64],[63],[61],[57],[49],[38],[23],[14],[ 8],[ 5],[ 4],[ 1],[ 0],[ 3],[ 6],[60],[62]]
-
-# convexHull(points, hull)
