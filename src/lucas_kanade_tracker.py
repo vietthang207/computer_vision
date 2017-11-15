@@ -12,9 +12,9 @@ def pyramid_reduce(frame):
 	kernel = np.array([[1]])
 	smoothened_frame = (conv2d(frame, kernel, 'same')).astype(np.float32)
 	# for i in range(sz[0]):
-		# for j in range(sz[1]):
-			# if (smoothened_frame[i][j] != frame[i][j]):
-				# print("diff", i, j, smoothened_frame[i][j], frame[i][j])
+	# 	for j in range(sz[1]):
+	# 		if (smoothened_frame[i][j] != frame[i][j]):
+	# 			print("diff", i, j, smoothened_frame[i][j], frame[i][j])
 	return smoothened_frame[::2, ::2]
 
 def gen_pyramid(frame, max_level):
@@ -37,76 +37,68 @@ def bitmap_to_feature_list(bitmap):
 	return feature_list
 
 def calculate_velocity(frame1, frame2, kernel, coordinate):
+	frame1 = frame1.astype(np.float32)
+	frame2 = frame2.astype(np.float32)
+	kernel = kernel.astype(np.float32)
 	frame_height = frame1.shape[0]
 	frame_width = frame1.shape[1]
 	kernel_size = kernel.shape[0]
-	min_img_size = 8
-	max_pyr_level = int((np.log2(min(frame_width, frame_height)/min_img_size)))
-	max_pyr_level = 1
-	print("max_pyr_level", max_pyr_level)
-	pyramid1 = gen_pyramid(frame1, max_pyr_level)
-	pyramid2 = gen_pyramid(frame2, max_pyr_level)
-	# output = feature_list * 1.0 / pow(2, max_pyr_level)
 	velocity = np.zeros(coordinate.shape, np.float32)
 	st = np.ones((coordinate.shape[0]))
+	scaled_coordinate = coordinate
 
-	for level in range(max_pyr_level - 1, -1, -1):
-		print("level", level)
-		frame1 = pyramid1[level]
-		frame2 = pyramid2[level]
-		frame_height = frame1.shape[0]
-		frame_width = frame1.shape[1]
-		scaled_coordinate = coordinate * 1.0 / pow(2, level)
-		scaled_coordinate_new = scaled_coordinate + velocity * 2
+	offset = kernel_size // 2
+
+	for k in range(coordinate.shape[0]):
+		i , j = int(scaled_coordinate[k, 0, 1]), int(scaled_coordinate[k, 0, 0])
+
+		Ix_w = np.zeros_like(kernel)
+		Iy_w = np.zeros_like(kernel)
+		It_w = np.zeros_like(kernel)
+
+		for x in range(kernel_size):
+			for y in range(kernel_size):
+				r = i - offset + x
+				c = j - offset + y
+				if r >= 0 and c >= 0 and r < frame_height - 1 and c <frame_width - 1:						
+					Ix_w[x, y] = frame1[r, c + 1] - frame1[r, c]
+					Iy_w[x, y] = frame1[r + 1, c] - frame1[r, c]
+					# if (r > 300 and c > 400):
+						# It_w[x, y] = frame1[i, j] - frame1[i, j]
+					# else:
+					# It_w[x, y] = frame2[i, j] - frame1[i, j]
+					# print(It_w[x, y])
+					It_w[x, y] = frame1[r, c] - frame2[r, c]
+				else:
+					st[k] = 0
+					break
+
+		z1 = z2 = z3 = z4 = b1 = b2 = 0
+		for i1 in range(kernel_size):
+			for j1 in range(kernel_size):
+				z1 += Ix_w[i1, j1] * Ix_w[i1, j1] * kernel[i1, j1]
+				z2 += Ix_w[i1, j1] * Iy_w[i1, j1] * kernel[i1, j1]
+				z3 += Ix_w[i1, j1] * Iy_w[i1, j1] * kernel[i1, j1]
+				z4 += Iy_w[i1, j1] * Iy_w[i1, j1] * kernel[i1, j1]
+				b1 += It_w[i1, j1] * Ix_w[i1, j1] * kernel[i1, j1]
+				b2 += It_w[i1, j1] * Iy_w[i1, j1] * kernel[i1, j1]
+		Z = np.array([[z1, z2], [z3, z4]])
+		B = np.array([[b1], [b2]])
+		# velocity[k, 0, 0] = velocity[k, 0, 0]*2
+		# velocity[k, 0, 1] = velocity[k, 0, 1]*2
+		try:
+			v = np.dot(np.linalg.inv(Z), B)
+			velocity[k, 0, 0] = v[0]
+			velocity[k, 0, 1] = v[1]
+		except np.linalg.linalg.LinAlgError:
+			st[k] = 0
 		
-		W = np.zeros((kernel_size * kernel_size, kernel_size * kernel_size))
-		for i in range(kernel_size):
-			for j in range(kernel_size):
-				pos = i * kernel_size + j
-				W[pos][pos] = np.sqrt(kernel[i][j])
+		# velocity[k, 0, 0] = 0
+		# velocity[k, 0, 1] = 1
 
-		offset = kernel_size // 2
-
-		for k in range(coordinate.shape[0]):
-			i , j = int(scaled_coordinate[k, 0, 0]), int(scaled_coordinate[k, 0, 1])
-			i_new, j_new =  int(scaled_coordinate_new[k, 0, 0]), int(scaled_coordinate_new[k, 0, 1])
-			if i != i_new or j != j_new:
-				print("diff")
-			if i < offset or j < offset or i > frame_height - offset - 1 or j > frame_width - offset - 1:
-				st[k] = 0
-				continue
-			if i_new < offset or j_new < offset or i_new >= frame_height - offset - 1 or j_new >= frame_width - offset - 1:
-				st[k] = 0
-				continue
-			# print(f, i, j)
-			# gradients inside window w
-			Ix_w = frame1[i - offset : i + offset + 1, j - offset +1 : j + offset + 2] - frame1[i - offset : i + offset + 1, j - offset : j + offset + 1]
-			Iy_w = - frame1[i - offset +1 : i + offset + 2, j - offset : j + offset + 1] + frame1[i - offset : i + offset + 1, j - offset : j + offset + 1]
-			It_w = frame2[i - offset : i + offset + 1, j - offset : j + offset + 1] - frame1[i - offset : i + offset + 1, j - offset : j + offset + 1]
-			# Ix_w = np.zeros_like(Ix_w)
-			# Iy_w = np.zeros_like(Iy_w)
-			# It_w = np.zeros_like(It_w)
-
-			# print(Ix_w.shape)
-			Ix_w = Ix_w.reshape(kernel_size * kernel_size, 1)
-			Iy_w = Iy_w.reshape(kernel_size * kernel_size, 1)
-			# TODO: which sign is this?
-			b = - It_w.reshape(kernel_size * kernel_size, 1)
-			# A = np.array([Ix_w, Iy_w])
-			A = np.zeros((kernel_size * kernel_size, 2))
-			for i1 in range(kernel_size * kernel_size):
-				A[i1, 0] = Ix_w[i1]
-				A[i1, 1] = Iy_w[i1]
-			# print(A.shape)
-
-			# A_t = np.transpose(A)
-			# print(A_t.shape, W.shape, A.shape, b.shape)
-			# v = np.linalg.inv(A_t.dot(W).dot(A)).dot(A_t).dot(W).dot(b)
-			A = W.dot(A)
-			b = W.dot(b)
-			v = np.linalg.pinv(A).dot(b)
-			velocity[k, 0, 0] = velocity[k, 0, 0]*2 + v[0]
-			velocity[k, 0, 1] = velocity[k, 0, 1]*2 + v[1]
+		# velocity[k, 0, 0] = velocity[k, 0, 0]*2 + v[0]
+		# velocity[k, 0, 1] = velocity[k, 0, 1]*2 + v[1]
+		
 	output = (coordinate + velocity)
 	return output, st
 				
@@ -114,13 +106,19 @@ if __name__ == "__main__":
 	cap = cv2.VideoCapture('../videos/traffic.mp4')
 	ret, old_frame = cap.read()
 	old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
-	kernel = gaussWin(7).dot(gaussWin(7).transpose())
+	kernel = gaussWin(13).dot(gaussWin(13).transpose())
+	c = 0
+	for i in range(kernel.shape[0]):
+		for j in range(kernel.shape[0]):
+			c += kernel[i, j]
+	print(c)
+	print(kernel)
 	# feature_list = corner_detector(old_gray, 7, 7)
 	# p0 = bitmap_to_feature_list(feature_list)
 	lk_params = dict( winSize  = (15,15),
                   maxLevel = 2,
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-	feature_params = dict( maxCorners = 100,
+	feature_params = dict( maxCorners = Constant.NUM_FEATURE_TO_TRACK,
                        qualityLevel = 0.3,
                        minDistance = 7,
                        blockSize = 7 )
@@ -131,9 +129,12 @@ if __name__ == "__main__":
 	while(1):
 	    ret,frame = cap.read()
 	    frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+	    cv2.imwrite("frameee1.jpg", frame_gray)
+	    # print(frame_gray.shape)
 	    # calculate optical flow
 	    # p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
 	    p1, st = calculate_velocity(old_gray, frame_gray, kernel, p0)
+	    # break
 	    # Select good points
 	    good_new = p1[st==1]
 	    good_old = p0[st==1]
