@@ -10,6 +10,7 @@ def pyramid_reduce(frame):
 	ker1d = np.array([[0.25-a/2, 0.25, a, 0.25, 0.25-a/2]])
 	kernel = np.kron(ker1d, ker1d.transpose())
 	kernel = np.array([[1]])
+	kernel = gaussWin(13).dot(gaussWin(13).transpose())
 	smoothened_frame = (conv2d(frame, kernel, 'same')).astype(np.float32)
 	# for i in range(sz[0]):
 	# 	for j in range(sz[1]):
@@ -36,7 +37,29 @@ def bitmap_to_feature_list(bitmap):
 	print(c)
 	return feature_list
 
-def calculate_velocity(frame1, frame2, kernel, coordinate):
+def lk_pyr(frame1, frame2, kernel, coordinate):
+	frame_height = frame1.shape[0]
+	frame_width = frame1.shape[1]
+	kernel_size = kernel.shape[0]
+	min_img_size = 16
+	max_pyr_level = int((np.log2(min(frame_width, frame_height)/min_img_size)))
+	max_pyr_level = 3
+	# print("max_pyr_level", max_pyr_level)
+	pyramid1 = gen_pyramid(frame1, max_pyr_level)
+	pyramid2 = gen_pyramid(frame2, max_pyr_level)
+	velocity = np.zeros(coordinate.shape, np.float32)
+	st = np.ones((coordinate.shape[0]))
+
+	for level in range(max_pyr_level - 1, -1, -1):
+		frame1 = pyramid1[level]
+		frame2 = pyramid2[level]
+		scaled_coordinate = coordinate * 1.0 / pow(2, level)
+		scaled_coordinate2 = (coordinate + velocity * 2) / pow(2, level)
+		addition_velocity, _ = lk_one_level(frame1, frame2, kernel, scaled_coordinate, scaled_coordinate2)
+		velocity = velocity * 2 + addition_velocity
+	return coordinate + velocity, st
+
+def lk_one_level(frame1, frame2, kernel, coordinate, coordinate2):
 	frame1 = frame1.astype(np.float32)
 	frame2 = frame2.astype(np.float32)
 	kernel = kernel.astype(np.float32)
@@ -45,12 +68,12 @@ def calculate_velocity(frame1, frame2, kernel, coordinate):
 	kernel_size = kernel.shape[0]
 	velocity = np.zeros(coordinate.shape, np.float32)
 	st = np.ones((coordinate.shape[0]))
-	scaled_coordinate = coordinate
 
 	offset = kernel_size // 2
 
 	for k in range(coordinate.shape[0]):
-		i , j = int(scaled_coordinate[k, 0, 1]), int(scaled_coordinate[k, 0, 0])
+		i , j = int(coordinate[k, 0, 1]), int(coordinate[k, 0, 0])
+		i2, j2 = int(coordinate2[k, 0, 1]), int(coordinate2[k, 0, 0]) 
 
 		Ix_w = np.zeros_like(kernel)
 		Iy_w = np.zeros_like(kernel)
@@ -60,15 +83,12 @@ def calculate_velocity(frame1, frame2, kernel, coordinate):
 			for y in range(kernel_size):
 				r = i - offset + x
 				c = j - offset + y
+				r2 = i2 - offset + x
+				c2 = j2 - offset + y
 				if r >= 0 and c >= 0 and r < frame_height - 1 and c <frame_width - 1:						
 					Ix_w[x, y] = frame1[r, c + 1] - frame1[r, c]
 					Iy_w[x, y] = frame1[r + 1, c] - frame1[r, c]
-					# if (r > 300 and c > 400):
-						# It_w[x, y] = frame1[i, j] - frame1[i, j]
-					# else:
-					# It_w[x, y] = frame2[i, j] - frame1[i, j]
-					# print(It_w[x, y])
-					It_w[x, y] = frame1[r, c] - frame2[r, c]
+					It_w[x, y] = frame1[i, j] - frame2[i2, j2]
 				else:
 					st[k] = 0
 					break
@@ -99,8 +119,8 @@ def calculate_velocity(frame1, frame2, kernel, coordinate):
 		# velocity[k, 0, 0] = velocity[k, 0, 0]*2 + v[0]
 		# velocity[k, 0, 1] = velocity[k, 0, 1]*2 + v[1]
 		
-	output = (coordinate + velocity)
-	return output, st
+	# output = (coordinate + velocity)
+	return velocity, st
 				
 if __name__ == "__main__":
 	cap = cv2.VideoCapture('../videos/traffic.mp4')
@@ -133,7 +153,7 @@ if __name__ == "__main__":
 	    # print(frame_gray.shape)
 	    # calculate optical flow
 	    # p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
-	    p1, st = calculate_velocity(old_gray, frame_gray, kernel, p0)
+	    p1, st = lk_pyr(old_gray, frame_gray, kernel, p0)
 	    # break
 	    # Select good points
 	    good_new = p1[st==1]
