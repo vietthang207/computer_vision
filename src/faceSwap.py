@@ -6,6 +6,7 @@ import cv2
 import dlib
 import math
 from delaunay_triangulation import delaunay_triangulation
+from cv_utils import findAffineTransformMatrix, warpAffine, boundingRect, convexHull, mapBack
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -28,10 +29,9 @@ def readPoints(path) :
 def applyAffineTransform(src, srcTri, dstTri, size) :
     
     # Given a pair of triangles, find the affine transform.
-    warpMat = cv2.getAffineTransform( np.float32(srcTri), np.float32(dstTri) )
+    warpMat = findAffineTransformMatrix( np.float32(dstTri), np.float32(srcTri) )
 
-    # Apply the Affine Transform just found to the src image
-    dst = cv2.warpAffine( src, warpMat, (size[0], size[1]), None, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101 )
+    dst = warpAffine(src, warpMat, size[0], size[1])
 
     return dst
 
@@ -52,13 +52,6 @@ def rectContains(rect, point) :
 #calculate delanauy triangle
 def calculateDelaunayTriangles(rect, points):
     #create subdiv
-    #subdiv = cv2.Subdiv2D(rect);
-    
-    # Insert points into subdiv
-    #for p in points:
-    #    subdiv.insert(p) 
-    
-    #triangleList = subdiv.getTriangleList();
     triangleList = delaunay_triangulation(points);
     
     delaunayTri = []
@@ -76,7 +69,12 @@ def calculateDelaunayTriangles(rect, points):
         pt2 = (t[2], t[3])
         pt3 = (t[4], t[5])        
         
+
         if rectContains(rect, pt1) and rectContains(rect, pt2) and rectContains(rect, pt3):
+        
+            # cv2.line(img, pt1, pt2, (255, 255, 255), 1, cv2.LINE_AA, 0)
+            # cv2.line(img, pt2, pt3, (255, 255, 255), 1, cv2.LINE_AA, 0)
+            # cv2.line(img, pt3, pt1, (255, 255, 255), 1, cv2.LINE_AA, 0)   
             count = count + 1 
             ind = []
             for j in range(0, 3):
@@ -85,9 +83,10 @@ def calculateDelaunayTriangles(rect, points):
                         ind.append(k)                            
             if len(ind) == 3:                                                
                 delaunayTri.append((ind[0], ind[1], ind[2]))
-        
         pt = []        
-            
+    print("result length ")
+    print(np.array(delaunayTri).shape)   
+    print(count)     
     
     return delaunayTri
         
@@ -96,9 +95,8 @@ def calculateDelaunayTriangles(rect, points):
 def warpTriangle(img1, img2, t1, t2) :
 
     # Find bounding rectangle for each triangle
-    r1 = cv2.boundingRect(np.float32([t1]))
-    r2 = cv2.boundingRect(np.float32([t2]))
-
+    r1 = boundingRect(np.float32([t1]))
+    r2 = boundingRect(np.float32([t2]))
     # Offset points by left top corner of the respective rectangles
     t1Rect = [] 
     t2Rect = []
@@ -109,7 +107,9 @@ def warpTriangle(img1, img2, t1, t2) :
         t2Rect.append(((t2[i][0] - r2[0]),(t2[i][1] - r2[1])))
         t2RectInt.append(((t2[i][0] - r2[0]),(t2[i][1] - r2[1])))
 
-    # Get mask by filling triangle
+    # Get mask by filling the triangle of t2, This mask when multiplied with the output 
+    # image turns all pixels outside the triangle black while preserving the color of all 
+    # pixels inside the triangle.
     mask = np.zeros((r2[3], r2[2], 3), dtype = np.float32)
     cv2.fillConvexPoly(mask, np.int32(t2RectInt), (1.0, 1.0, 1.0), 16, 0);
 
@@ -121,9 +121,14 @@ def warpTriangle(img1, img2, t1, t2) :
 
     img2Rect = applyAffineTransform(img1Rect, t1Rect, t2Rect, size)
     
+    
+    # Preserve all inside, delete all outside
     img2Rect = img2Rect * mask
 
+    # Preserve all outside, delete all insisde.
     # Copy triangular region of the rectangular patch to the output image
+    # When multiply the destination image with (1 - mask), then we will preserve all pixels
+    # outside the triangle, and turns all pixels inside triangle to black, after that we add with img2Rect.
     img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] = img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] * ( (1.0, 1.0, 1.0) - mask )
      
     img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] = img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] + img2Rect 
@@ -155,38 +160,38 @@ if __name__ == '__main__' :
 
     
     # Read images
-    filename1 = 'ntk.jpg'
-    filename2 = 'taylor-swift-face.jpg'
+    filename2 = 'hieu.jpg'
+    filename1 = 'taylor-swift-face.jpg'
     
     img1 = cv2.imread(filename1);
     img2 = cv2.imread(filename2);
     
-    img1Warped = np.copy(img2); 
-    
-    # res = get_landmarks(img1)
-    # print(res.shape)
-
+    img1Warped = np.copy(img2);
+     
     # Read array of corresponding points
     points1 = get_landmarks(img1)
     points2 = get_landmarks(img2)
-    # print(points1)
-    # print(np.array(points2).shape)
-    # print(np.array(points3).shape)
-    # print(points4)    
+    
     
     # Find convex hull
     hull1 = []
     hull2 = []
 
-    hullIndex = cv2.convexHull(np.array(points2), returnPoints = False)
-          
+    sorted_points = sorted(points2)
+
+    hullIndex = convexHull(np.array(sorted_points))
+    hullIndex = mapBack(np.array(points2), np.array(sorted_points), np.array(hullIndex))
+    hullIndex = np.array(hullIndex)
+
+
     for i in range(0, len(hullIndex)):
         hull1.append(points1[int(hullIndex[i])])
         hull2.append(points2[int(hullIndex[i])])
     
     
-    # Find delanauy traingulation for convex hull points
+    # Find delanauy triangulation for convex hull points
     sizeImg2 = img2.shape    
+    print(sizeImg2)
     rect = (0, 0, sizeImg2[1], sizeImg2[0])
 
     dt = calculateDelaunayTriangles(rect, hull2)
@@ -205,7 +210,8 @@ if __name__ == '__main__' :
             t2.append(hull2[dt[i][j]])
         
         warpTriangle(img1, img1Warped, t1, t2)
-    
+
+    print("OKKKKK")
             
     # Calculate Mask
     hull8U = []
@@ -216,7 +222,7 @@ if __name__ == '__main__' :
     
     cv2.fillConvexPoly(mask, np.int32(hull8U), (255, 255, 255))
     
-    r = cv2.boundingRect(np.float32([hull2]))    
+    r = boundingRect(np.float32([hull2]))    
     
     center = ((r[0]+int(r[2]/2), r[1]+int(r[3]/2)))
         
@@ -225,7 +231,7 @@ if __name__ == '__main__' :
     output = cv2.seamlessClone(np.uint8(img1Warped), img2, mask, center, cv2.NORMAL_CLONE)
     
     cv2.imshow("Face Swapped", output)
-    cv2.waitKey(10000)
+    cv2.waitKey(20000)
     
     cv2.destroyAllWindows()
         
