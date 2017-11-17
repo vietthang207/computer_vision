@@ -1,7 +1,7 @@
 from cv2 import WINDOW_NORMAL
 
 import cv2
-from utils import nparray_as_image, draw_with_alpha, find_faces, detect_face
+from emotion_utils import *
 
 import pickle
 import glob
@@ -52,8 +52,6 @@ def video():
             mode = emotions[prediction]
             output = cartoonize(frame, mode)
             if output is not None:
-                #cv2.imshow('1', output)
-                #cv2.waitKey(500)
                 writer.write(output)
             else:
                 writer.write(frame)

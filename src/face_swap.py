@@ -5,8 +5,7 @@ import numpy as np
 import cv2
 import dlib
 import math
-from delaunay_triangulation import delaunay_triangulation
-from cv_utils import findAffineTransformMatrix, warpAffine, boundingRect
+from face_swap_utils import *
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -24,23 +23,14 @@ def readPoints(path) :
     
     return points
 
-# Apply affine transform calculated using srcTri and dstTri to src and
-# output an image of size.
 def applyAffineTransform(src, srcTri, dstTri, size) :
     
     # Given a pair of triangles, find the affine transform.
-    # warpMat = cv2.getAffineTransform( np.float32(srcTri), np.float32(dstTri) )
-
     warpMat = findAffineTransformMatrix( np.float32(dstTri), np.float32(srcTri) )
 
 
     # Apply the Affine Transform just found to the src image
-    #dst = cv2.warpAffine( src, warpMat, (size[0], size[1]) )
     dst = warpAffine( src, warpMat, size[0], size[1])
-    # fakeDst = warpAffine(src, warpMat, size[0], size[1])
-    # resizedDst = cv2.resize(fakeDst, (size[0], size[1]), interpolation = cv2.INTER_AREA)
-    # resizedDst = resizedDst.astype(int)
-  
 
     return dst
 
@@ -80,10 +70,6 @@ def calculateDelaunayTriangles(rect, points):
         
 
         if rectContains(rect, pt1) and rectContains(rect, pt2) and rectContains(rect, pt3):
-        
-            # cv2.line(img, pt1, pt2, (255, 255, 255), 1, cv2.LINE_AA, 0)
-            # cv2.line(img, pt2, pt3, (255, 255, 255), 1, cv2.LINE_AA, 0)
-            # cv2.line(img, pt3, pt1, (255, 255, 255), 1, cv2.LINE_AA, 0)   
             count = count + 1 
             ind = []
             for j in range(0, 3):
@@ -93,10 +79,7 @@ def calculateDelaunayTriangles(rect, points):
             if len(ind) == 3:                                                
                 delaunayTri.append((ind[0], ind[1], ind[2]))
         pt = []        
-    #print("result length ")
-    #print(np.array(delaunayTri).shape)   
-    #print(count)     
-    
+
     return delaunayTri
         
 
@@ -106,6 +89,7 @@ def warpTriangle(img1, img2, t1, t2) :
     # Find bounding rectangle for each triangle
     r1 = boundingRect(np.float32([t1]))
     r2 = boundingRect(np.float32([t2]))
+
     # Offset points by left top corner of the respective rectangles
     t1Rect = [] 
     t2Rect = []
@@ -124,15 +108,12 @@ def warpTriangle(img1, img2, t1, t2) :
 
     # Apply warpImage to small rectangular patches
     img1Rect = img1[r1[1]:r1[1] + r1[3], r1[0]:r1[0] + r1[2]]
-    #img2Rect = np.zeros((r2[3], r2[2]), dtype = img1Rect.dtype)
     
     size = (r2[2], r2[3])
 
     img2Rect = applyAffineTransform(img1Rect, t1Rect, t2Rect, size)
     
     
-    #print("mask")
-    #print(mask.shape)
     # Preserve all inside, delete all outside
     img2Rect = img2Rect * mask
 
@@ -147,7 +128,6 @@ def warpTriangle(img1, img2, t1, t2) :
 
 def get_landmarks(image):
     detections = detector(image, 1)
-    #print(np.array(detections).shape)
     for k,d in enumerate(detections): #For all detected face instances individually
         res = []
         shape = predictor(image, d)
@@ -163,9 +143,6 @@ def face_swap(img1, img2):
     
     img1Warped = np.copy(img2);
      
-    # res = get_landmarks(img1)
-    # print(res.shape)
-
     # Read array of corresponding points
     points1 = get_landmarks(img1)
     points2 = get_landmarks(img2)
@@ -187,7 +164,6 @@ def face_swap(img1, img2):
     
     # Find delanauy triangulation for convex hull points
     sizeImg2 = img2.shape    
-    #print(sizeImg2)
     rect = (0, 0, sizeImg2[1], sizeImg2[0])
 
     dt = calculateDelaunayTriangles(rect, hull2)
@@ -207,8 +183,6 @@ def face_swap(img1, img2):
         
         warpTriangle(img1, img1Warped, t1, t2)
 
-    #print("OKKKKK")
-            
     # Calculate Mask
     hull8U = []
     for i in range(0, len(hull2)):
@@ -218,7 +192,7 @@ def face_swap(img1, img2):
     
     cv2.fillConvexPoly(mask, np.int32(hull8U), (255, 255, 255))
     
-    r = cv2.boundingRect(np.float32([hull2]))    
+    r = boundingRect(np.float32([hull2]))    
     
     center = ((r[0]+int(r[2]/2), r[1]+int(r[3]/2)))
         
@@ -231,15 +205,6 @@ def face_swap(img1, img2):
  
 if __name__ == '__main__' :
     
-
-    # Make sure OpenCV is version 3.0 or above
-    #(major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
-
-    #if int(major_ver) < 3 :
-    #    print >>sys.stderr, 'ERROR: Script needs OpenCV 3.0 or higher'
-    #    sys.exit(1)
-
-    
     # Read images
     filename2 = 'ntk.jpg'
     filename1 = 'taylor-swift-face.jpg'
@@ -248,14 +213,10 @@ if __name__ == '__main__' :
     img2 = cv2.imread(filename2);
     
     img1Warped = np.copy(img2);
-     
-    # res = get_landmarks(img1)
-    # print(res.shape)
 
     # Read array of corresponding points
     points1 = get_landmarks(img1)
     points2 = get_landmarks(img2)
-    
     
     # Find convex hull
     hull1 = []
@@ -290,8 +251,6 @@ if __name__ == '__main__' :
         
         warpTriangle(img1, img1Warped, t1, t2)
 
-    print("OKKKKK")
-            
     # Calculate Mask
     hull8U = []
     for i in range(0, len(hull2)):
@@ -301,7 +260,7 @@ if __name__ == '__main__' :
     
     cv2.fillConvexPoly(mask, np.int32(hull8U), (255, 255, 255))
     
-    r = cv2.boundingRect(np.float32([hull2]))    
+    r = boundingRect(np.float32([hull2]))    
     
     center = ((r[0]+int(r[2]/2), r[1]+int(r[3]/2)))
         

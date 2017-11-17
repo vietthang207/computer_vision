@@ -9,7 +9,6 @@ from sklearn.svm import SVC
 import pickle
 
 emotions = ["anger", "contempt", "disgust", "fear", "happy", "neutral", "sadness", "surprise"] #Emotion list
-# emotions = ["neutral", "anger", "disgust", "happy", "surprise"]
 
 clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
 detector = dlib.get_frontal_face_detector()
@@ -17,7 +16,6 @@ predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat") #Or se
 clf = SVC(kernel='linear', probability=True, tol=1e-3)#, verbose = True) #Set the classifier as a support vector machines with polynomial kernel
 
 data = {} #Make dictionary for all values
-#data['landmarks_vectorised'] = []
 
 def get_files(emotion): #Define function to get file list, randomly shuffle it and split 80/20
     files = glob.glob("dataset/%s/*" %emotion)
@@ -26,8 +24,6 @@ def get_files(emotion): #Define function to get file list, randomly shuffle it a
     random.shuffle(files)
     training = files[:int(len(files) * 0.99)] #get first 80% of file list
     prediction = files[-int(len(files) * 0.01):] #get last 20% of file list
-    # training = files
-    # prediction = sorted(glob.glob("predict_dataset/*"))
     return training, prediction
 
 def get_landmarks(image):
@@ -75,8 +71,6 @@ def make_sets():
         for item in training:
             image = cv2.imread(item) #open image
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) #convert to grayscale
-            # clahe_image = clahe.apply(gray)
-            # get_landmarks(clahe_image)
             get_landmarks(gray)
             if data['landmarks_vectorised'] == "error":
                 print("no face detected on this one")
@@ -87,8 +81,6 @@ def make_sets():
         for item in prediction:
             image = cv2.imread(item)
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            # clahe_image = clahe.apply(gray)
-            # get_landmarks(clahe_image)
             get_landmarks(gray)
             if data['landmarks_vectorised'] == "error":
                 print("no face detected on this one")
