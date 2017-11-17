@@ -14,15 +14,21 @@ class CartoonFilter(object):
 
 	def setPresetMode(self,mode):
 		if mode == 1:
-			self.ratio = 40
-			self.edge_threshold = 240
+			self.ratio = 20
+			self.edge_threshold = 230
 			self.edge_thickness = 1
-			self.intensity = [1,1,1]
+			self.intensity = [1,0.95,0.92]
 		elif mode == 2:
-			self.ratio = 10
-			self.edge_threshold = 245
-			self.edge_thickness = 2
-			self.intensity = [0.92,0.92,1]
+			self.ratio = 25
+			self.edge_threshold = 230
+			self.edge_thickness = 1
+			self.intensity = [0.85,0.85,0.85]
+		elif mode == 3:
+			self.ratio = 30
+			self.edge_threshold = 230
+			self.edge_thickness = 1
+			self.intensity = [0.7,0.7,0.8]
+
 
 	def cartoon_color(self, img, bitmap, edgemap):
 		# Actual full step for cartoon effect:
@@ -95,8 +101,8 @@ def cartoonize(frame1):
 	cv2.waitKey(2000)
 
 if __name__ == "__main__":
-	cap = cv2.VideoCapture('vid1.mp4')
-	cap.set(1,2016);
+	cap = cv2.VideoCapture('../videos/vid2.mp4')
+	cap.set(1,30);
 	ret, frame1 = cap.read()
 	# cv2.imshow("original", frame1)
 	n = frame1.shape[0]
@@ -109,7 +115,13 @@ if __name__ == "__main__":
 	cf.setPresetMode(1);
 	frame2 = cf.cartoon_color(frame1, bm, em)
 	cv2.imshow("mode 1", frame2)
+	cv2.imwrite("mode1.jpg", frame2)
 	cf.setPresetMode(2);
 	frame3 = cf.cartoon_color(frame1, bm, em)
 	cv2.imshow("mode 2", frame3)
+	cv2.imwrite("mode2.jpg", frame3)
+	cf.setPresetMode(3);
+	frame4 = cf.cartoon_color(frame1, bm, em)
+	cv2.imshow("mode 3", frame4)
+	cv2.imwrite("mode3.jpg", frame4)
 	cv2.waitKey()
