@@ -137,9 +137,11 @@ def draw_with_alpha(source_image, image_to_draw, coordinates):
     x, y, w, h = coordinates
     image_to_draw = image_to_draw.resize((h, w), Image.ANTIALIAS)
     image_array = image_as_nparray(image_to_draw)
+    result = np.copy(source_image)
     for c in range(0, 3):
-        source_image[y:y + h, x:x + w, c] = image_array[:, :, c] * (image_array[:, :, 3] / 255.0) \
-                                            + source_image[y:y + h, x:x + w, c] * (1.0 - image_array[:, :, 3] / 255.0)
+        result[y:y + h, x:x + w, c] = image_array[:, :, c] * (image_array[:, :, 3] / 255.0) \
+                                            + result[y:y + h, x:x + w, c] * (1.0 - image_array[:, :, 3] / 255.0)
+    return result
 
 faceDet = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 faceDet2 = cv2.CascadeClassifier("haarcascade_frontalface_alt2.xml")
@@ -155,11 +157,11 @@ def detect_face(frame):
         face3 = faceDet3.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=10, minSize=(5, 5), flags=cv2.CASCADE_SCALE_IMAGE)
         face4 = faceDet4.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=10, minSize=(5, 5), flags=cv2.CASCADE_SCALE_IMAGE)
 
-        print("len")
-        print(len(face))
-        print(len(face2))
-        print(len(face3))
-        print(len(face4))
+        #print("len")
+        #print(len(face))
+        #print(len(face2))
+        #print(len(face3))
+        #print(len(face4))
 
         #Go over detected faces, stop at first detected face, return empty if no face.
         if len(face) == 1:
@@ -171,7 +173,10 @@ def detect_face(frame):
         elif len(face4) == 1:
             facefeatures = face4
         else:
-            facefeatures = ""
+            facefeatures = None
+
+        if facefeatures is None:
+            return None, None
         #Cut and save face
         for (x, y, w, h) in facefeatures: #get coordinates and size of rectangle containing face
             # print ("face found in file: %s" %f)

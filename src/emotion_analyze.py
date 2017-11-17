@@ -15,44 +15,54 @@ def _load_emoticons(emotions):
     return [nparray_as_image(cv2.imread('emoji/%s.png' % emotion, -1), mode=None) for emotion in emotions]
 
 
-def show(model, emoticons):
-    files = glob.glob("predict_dataset/*")
-    for file in files:
-        print(file)
-        image = cv2.imread(file)
-        print(image.shape)
-        normalized_face, (x, y, w, h) = detect_face(image)
-        # for normalized_face, (x, y, w, h) in detect_face(image):
-        print(normalized_face.shape)
-        # cv2.imshow("a", normalized_face)
-        # cv2.waitKey(5000)
-        print(image.shape)
-        # normalized_face = cv2.resize(normalized_face, (268, 268))
-        # gray = cv2.cvtColor(normalized_face, cv2.COLOR_BGR2GRAY) #convert to grayscale
-        clahe_image = clahe.apply(normalized_face)
-        normalized_face = get_data(clahe_image)
-        p = []
-        p.append(normalized_face)
-        prediction = model.predict(np.array(p))  # do prediction
-        print(prediction.shape )
-        print(prediction)
-        prediction = prediction[0]
-        image_to_draw = emoticons[prediction]
-        cv2.imshow('HIEU', image)
-        cv2.waitKey(500)
-        # cartoonize(image)
-        draw_with_alpha(image, image_to_draw, (x, y, w, h))
-        cv2.imshow('HIEU', image)
-        cv2.waitKey(500)
+def predict_emotion(image):
+     # use learnt model
+    filename = 'finalized_model.sav'
+    model = pickle.load(open(filename, 'rb'))
+
+    normalized_face, (x, y, w, h) = detect_face(image)
+    clahe_image = clahe.apply(normalized_face)
+    normalized_face = get_data(clahe_image)
+    p = []
+    p.append(normalized_face)
+    prediction = model.predict(np.array(p))  # do prediction
+    prediction = prediction[0]
+    return prediction
 
 
-if __name__ == '__main__':
-    # emotions = ['neutral', 'anger', 'disgust', 'happy', 'surprise']
+def video():
     emotions = ["anger", "contempt", "disgust", "fear", "happy", "neutral", "sadness", "surprise"] #Emotion list
-
     emoticons = _load_emoticons(emotions)
 
-    # use learnt model
-    filename = 'finalized_model.sav'
-    loaded_model = pickle.load(open(filename, 'rb'))
-    show(loaded_model, emoticons)
+    video = cv2.VideoCapture('../videos/emotion.mp4')
+    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    writer = cv2.VideoWriter('../videos/output_face.avi', fourcc, 20.0, (width, height))
+
+    num_frame = 0
+    while True:
+        ret, frame = video.read()
+        if ret == True:
+            num_frame += 1
+            print('frame: ' + str(num_frame))
+
+            prediction = predict_emotion(frame)
+            icon = emoticons[prediction]
+            mode = emotions[prediction]
+            output = cartoonize(frame, mode)
+            if output is not None:
+                #cv2.imshow('1', output)
+                #cv2.waitKey(500)
+                writer.write(output)
+            else:
+                writer.write(frame)
+        else:
+            break
+
+    video.release()
+    writer.release()
+    cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    video()
