@@ -11,10 +11,6 @@ from cartoon_filter import cartoonize
 
 clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
 
-def _load_emoticons(emotions):
-    return [nparray_as_image(cv2.imread('emoji/%s.png' % emotion, -1), mode=None) for emotion in emotions]
-
-
 def predict_emotion(image):
      # use learnt model
     filename = 'finalized_model.sav'
@@ -32,7 +28,6 @@ def predict_emotion(image):
 
 def video():
     emotions = ["anger", "contempt", "disgust", "fear", "happy", "neutral", "sadness", "surprise"] #Emotion list
-    emoticons = _load_emoticons(emotions)
 
     video = cv2.VideoCapture('../videos/emotion.mp4')
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -48,7 +43,6 @@ def video():
             print('frame: ' + str(num_frame))
 
             prediction = predict_emotion(frame)
-            icon = emoticons[prediction]
             mode = emotions[prediction]
             output = cartoonize(frame, mode)
             if output is not None:
