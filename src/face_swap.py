@@ -199,5 +199,4 @@ def face_swap(img1, img2):
     
     # Clone seamlessly.
     output = cv2.seamlessClone(np.uint8(img1Warped), img2, mask, center, cv2.NORMAL_CLONE)
-   
     return output
