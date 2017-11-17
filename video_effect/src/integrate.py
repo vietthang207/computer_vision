@@ -1,5 +1,6 @@
 from face_swap import *
 from cartoon_filter import *
+from emotion_analyze import *
 import cv2
 
 def avg(frame1, frame2):
@@ -9,7 +10,7 @@ def avg(frame1, frame2):
     return np.dot(add, 0.5).astype(np.uint8)
 
 def video_swap():
-    video = cv2.VideoCapture('../videos/thang.mp4')
+    video = cv2.VideoCapture('../videos/swap.mp4')
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -116,7 +117,6 @@ def video_append():
 
 def video_emotion():
     emotions = ["anger", "contempt", "disgust", "fear", "happy", "neutral", "sadness", "surprise"] #Emotion list
-    emoticons = _load_emoticons(emotions)
 
     video = cv2.VideoCapture('../videos/emotion.mp4')
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -129,9 +129,9 @@ def video_emotion():
         ret, frame = video.read()
         if ret == True:
             num_frame += 1
+            print(num_frame)
 
             prediction = predict_emotion(frame)
-            icon = emoticons[prediction]
             mode = emotions[prediction]
             output = cartoonize(frame, mode)
             if output is not None:
@@ -148,4 +148,4 @@ def video_emotion():
 
 
 if __name__ == "__main__":
-    video_append()
+    video_emotion()

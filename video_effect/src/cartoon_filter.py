@@ -78,7 +78,7 @@ def cartoonize(frame1, mode):
     bm = np.ones((n, m))
     frameb = cv2.cvtColor(frame1, cv2.COLOR_RGB2GRAY)
     em = ed.get_edge_map(frameb)
-    cf = CartoonFilter(25, 210, 0)
+    cf = CartoonFilter(25, 210, 1)
 
     if mode == 'happy':
         cf.intensity = [0.8,0.5,1]
