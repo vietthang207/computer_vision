@@ -12,6 +12,18 @@ class CartoonFilter(object):
 		self.edge_thickness = edge_thickness
 		self.intensity = [1,1,1]
 
+	def setPresetMode(self,mode):
+		if mode == 1:
+			self.ratio = 40
+			self.edge_threshold = 240
+			self.edge_thickness = 1
+			self.intensity = [1,1,1]
+		elif mode == 2:
+			self.ratio = 10
+			self.edge_threshold = 245
+			self.edge_thickness = 2
+			self.intensity = [0.92,0.92,1]
+
 	def cartoon_color(self, img, bitmap, edgemap):
 		# Actual full step for cartoon effect:
 
@@ -25,11 +37,11 @@ class CartoonFilter(object):
 
 		height = img.shape[0]
 		width = img.shape[1]
-		edgemap = self.edgemap_modify(edgemap)
+		edgemap2 = self.edgemap_modify(edgemap)
 
 		for i in range(1, height):
 			for j in range(1, width):
-				if edgemap[i,j]:
+				if edgemap2[i,j]:
 					img[i,j] = [0,0,0]
 				elif bitmap[i][j] == 1:
 					img[i][j] = self.color_change(img[i][j])
@@ -84,19 +96,20 @@ def cartoonize(frame1):
 
 if __name__ == "__main__":
 	cap = cv2.VideoCapture('vid1.mp4')
-	# cap.set(1,2016);
+	cap.set(1,2016);
 	ret, frame1 = cap.read()
-	cv2.imshow("original", frame1)
+	# cv2.imshow("original", frame1)
 	n = frame1.shape[0]
 	m = frame1.shape[1]
 	bm = np.ones((n, m))
 	frameb = cv2.cvtColor(frame1, cv2.COLOR_RGB2GRAY)
 	em = ed.get_edge_map(frameb)
-	cv2.imshow('edgemap', em.astype(np.uint8))
+	# cv2.imshow('edgemap', em.astype(np.uint8))
 	cf = CartoonFilter(30, 200, 1)
+	cf.setPresetMode(1);
 	frame2 = cf.cartoon_color(frame1, bm, em)
-	cv2.imshow("cartoon color", frame2)
-	cf.intensity = [0,1,1]
+	cv2.imshow("mode 1", frame2)
+	cf.setPresetMode(2);
 	frame3 = cf.cartoon_color(frame1, bm, em)
-	cv2.imshow("yellow cartoon color", frame3)
+	cv2.imshow("mode 2", frame3)
 	cv2.waitKey()
