@@ -9,7 +9,6 @@ import math
 
 
 def conv2d(image, kernel, padding='same'):
-    # return image
     image_height = image.shape[0]
     image_width = image.shape[1]
     kernel_height = kernel.shape[0]
@@ -18,6 +17,7 @@ def conv2d(image, kernel, padding='same'):
     offset_width = kernel_width // 2
     padded_image = np.zeros(((image_height + offset_height * 2), (image_width + offset_width * 2)))
     output = np.zeros(((image_height + offset_height * 2), (image_width + offset_width * 2)))
+    # output = [[0 for col in range(image_width + offset_width * 2)] for row in range(image_height + offset_height * 2)]
 
     for i in range(image_height):
         for j in range(image_width):

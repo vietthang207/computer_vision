@@ -50,12 +50,12 @@ class CartoonFilter(object):
         for i in range(1, height):
             for j in range(1, width):
                 if edgemap[i,j] < thres:
-                    #for y in range (i-thicc+1,i+thicc):	#minimum thickness 1
-                    #    for x in range(j-thicc+1,j+thicc):
-                    #        if 0 <= y < height and 0 <= x < width:
-                    #            edgemap2[y,x] = 1
-                    if i + thicc < height and j + thicc < width:
-                        edgemap2[i+thicc, j+thicc] = 1
+                    for y in range (i-thicc+1,i+thicc):	#minimum thickness 1
+                        for x in range(j-thicc+1,j+thicc):
+                            if 0 <= y < height and 0 <= x < width:
+                                edgemap2[y,x] = 1
+                    #if i + thicc < height and j + thicc < width:
+                    #    edgemap2[i+thicc, j+thicc] = 1
         return edgemap2
 
     def color_change(self,pixel):
@@ -78,8 +78,6 @@ def cartoonize(frame1, mode):
     bm = np.ones((n, m))
     frameb = cv2.cvtColor(frame1, cv2.COLOR_RGB2GRAY)
     em = ed.get_edge_map(frameb)
-    # cv2.imshow('em', em.astype(np.uint8))
-    # cv2.imwrite('cat bla.jpg', em)
     cf = CartoonFilter(25, 210, 0)
 
     if mode == 'happy':
@@ -108,11 +106,11 @@ def video():
         if ret == True:
             num_frame += 1
             print(num_frame)
-            #output = cartoonize(frame, 'happy')
-            #if output is not None:
+            output = cartoonize(frame, 'happy')
+            if output is not None:
                 #cv2.imshow('1', output)
                 #cv2.waitKey(1)
-            #    writer.write(output)
+                writer.write(output)
         else:
             break
 
